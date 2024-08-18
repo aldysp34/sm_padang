@@ -5,6 +5,7 @@ import (
 
 	"github.com/aldysp34/sm_padang/model"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type BarangOutRepository struct {
@@ -17,27 +18,37 @@ func NewBarangOutRepository(db *gorm.DB) *BarangOutRepository {
 	}
 }
 
-func (sr *BarangOutRepository) CreateBarangOut(satuan model.BarangOut) (model.BarangOut, error) {
+func (sr *BarangOutRepository) CreateBarangOut(tx *gorm.DB, satuan model.BarangOut) (*gorm.DB, error) {
 	satuan.CreatedAt = time.Now()
 	satuan.UpdatedAt = time.Now()
-	if err := sr.Db.Create(&satuan).Error; err != nil {
-		return model.BarangOut{}, err
+	if err := tx.Create(&satuan).Error; err != nil {
+		return tx, err
 	}
-	return satuan, nil
+	return tx, nil
 }
 
 func (sr *BarangOutRepository) GetBarangOutByID(id uint) (model.BarangOut, error) {
 	var satuan model.BarangOut
-	if err := sr.Db.First(&satuan, id).Error; err != nil {
+	if err := sr.Db.Preload("Barang.Supplier").Preload("Barang.Satuan").Preload("Barang.Brand").Preload(clause.Associations).First(&satuan, id).Error; err != nil {
 		return model.BarangOut{}, err
 	}
 	return satuan, nil
 }
 
 // Get all satuans
-func (sr *BarangOutRepository) GetAllBarangOuts(db *gorm.DB) ([]model.BarangOut, error) {
+func (sr *BarangOutRepository) GetAllBarangOuts() ([]model.BarangOut, error) {
 	var satuans []model.BarangOut
-	if err := sr.Db.Find(&satuans).Error; err != nil {
+	if err := sr.Db.Preload("Barang.Supplier").Preload("Barang.Satuan").Preload("Barang.Brand").Preload(clause.Associations).Find(&satuans).Error; err != nil {
+		return nil, err
+	}
+	return satuans, nil
+}
+
+func (sr *BarangOutRepository) GetAllBarangOutsWithDate(startDate, endDate time.Time) ([]model.BarangOut, error) {
+	var satuans []model.BarangOut
+	start := startDate.AddDate(0, 0, -1)
+	end := endDate.AddDate(0, 0, 1)
+	if err := sr.Db.Preload("Barang.Supplier").Preload("Barang.Satuan").Preload("Barang.Brand").Preload(clause.Associations).Where("created_at BETWEEN ? AND ?", start, end).Find(&satuans).Error; err != nil {
 		return nil, err
 	}
 	return satuans, nil

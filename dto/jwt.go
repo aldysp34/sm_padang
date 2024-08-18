@@ -9,12 +9,12 @@ import (
 
 type JWTClaims struct {
 	jwt.RegisteredClaims
-	Role string `json:"role"`
-	ID   string `json:"user_id"`
+	Role uint `json:"role_id"`
+	ID   uint `json:"user_id"`
 }
 
 func GenerateAccessToken(claims JWTClaims) (string, error) {
-	expirationTime := time.Now().Add(15 * time.Minute)
+	expirationTime := time.Now().Add(120 * time.Minute)
 	claims.Issuer = os.Getenv("APP_NAME")
 	claims.IssuedAt = jwt.NewNumericDate(time.Now())
 	claims.ExpiresAt = jwt.NewNumericDate(expirationTime)

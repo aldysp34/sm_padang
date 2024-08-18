@@ -46,6 +46,8 @@ type Barang struct {
 	BrandID    uint   `gorm:"index"` // Foreign key to Brands table
 	Brand      Brand  `gorm:"foreignKey:BrandID"`
 	Total      int
+	SupplierID uint     `gorm:"index"`
+	Supplier   Supplier `gorm:"foreignKey:SupplierID"`
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
 }
@@ -66,6 +68,8 @@ type BarangOut struct {
 	BarangID    uint   `gorm:"index"` // Foreign key to Barangs table
 	Barang      Barang `gorm:"foreignKey:BarangID"`
 	TotalBarang int
+	RequestID   uint    `gorm:"index"`
+	Request     Request `gorm:"foreignKey:RequestID"`
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 }
@@ -88,7 +92,7 @@ type Request struct {
 	BarangID       uint   `gorm:"index"` // Foreign key to Barangs table
 	Barang         Barang `gorm:"foreignKey:BarangID"`
 	TotalRequested int
-	Status         string // "pending", "approved", "rejected"
+	Status         uint // "pending", "approved", "rejected"
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
 }

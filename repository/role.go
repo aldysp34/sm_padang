@@ -6,6 +6,7 @@ import (
 
 	"github.com/aldysp34/sm_padang/model"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type RoleRepository struct {
@@ -30,7 +31,7 @@ func (rr *RoleRepository) CreateRole(ctx context.Context, role model.Role) error
 
 func (rr *RoleRepository) GetRoleByID(ctx context.Context, role model.Role) (model.Role, error) {
 	var getRole model.Role
-	if err := rr.Db.First(&role, role.ID).Error; err != nil {
+	if err := rr.Db.Preload(clause.Associations).First(&role, role.ID).Error; err != nil {
 		return model.Role{}, err
 	}
 	return getRole, nil
@@ -38,7 +39,7 @@ func (rr *RoleRepository) GetRoleByID(ctx context.Context, role model.Role) (mod
 
 func (rr *RoleRepository) GetAllRoles(ctx context.Context) []model.Role {
 	var roles []model.Role
-	if err := rr.Db.Find(&roles).Error; err != nil {
+	if err := rr.Db.Preload(clause.Associations).Find(&roles).Error; err != nil {
 		return nil
 	}
 	return roles
@@ -46,7 +47,15 @@ func (rr *RoleRepository) GetAllRoles(ctx context.Context) []model.Role {
 
 func (rr *RoleRepository) UpdateRole(ctx context.Context, req model.Role) (model.Role, error) {
 	req.UpdatedAt = time.Now()
-	if err := rr.Db.Save(&req).Error; err != nil {
+
+	var data model.Role
+	if err := rr.Db.Where("id = ?", req.ID).First(&data).Error; err != nil {
+		return model.Role{}, err
+	}
+
+	data.RoleName = req.RoleName
+	data.UpdatedAt = req.UpdatedAt
+	if err := rr.Db.Save(&data).Error; err != nil {
 		return model.Role{}, err
 	}
 

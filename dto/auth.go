@@ -5,10 +5,11 @@ import (
 )
 
 type ReqNewUser struct {
+	Id       uint   `json:"id" form:"id"`
 	Name     string `json:"name"`
-	Email    string `json:"email"`
 	Username string `json:"username"`
 	Password string `json:"password"`
+	Role     uint   `json:"role"`
 }
 
 type ReqUser struct {
@@ -18,7 +19,11 @@ type ReqUser struct {
 }
 
 type LoginResponse struct {
-	Token string `json:"token"`
+	Token    string `json:"token"`
+	Nama     string `json:"nama"`
+	Username string `json:"username"`
+	RoleID   uint   `json:"role_id"`
+	Role     string `json:"role_name"`
 }
 
 type VerifyResponse struct {

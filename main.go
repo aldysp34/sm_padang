@@ -7,6 +7,13 @@ import (
 	"os"
 	"time"
 
+	"github.com/aldysp34/sm_padang/config"
+	"github.com/aldysp34/sm_padang/database"
+	"github.com/aldysp34/sm_padang/handler"
+	"github.com/aldysp34/sm_padang/logger"
+	"github.com/aldysp34/sm_padang/repository"
+	"github.com/aldysp34/sm_padang/server"
+	"github.com/aldysp34/sm_padang/usecase"
 	"github.com/joho/godotenv"
 )
 
@@ -19,41 +26,32 @@ func main() {
 
 	logger.SetLogger(log)
 
-	dbConfig, err := database.InitDatabaseConfig()
-	if err != nil {
-		logger.Log.Errorf(err.Error())
-		panic(err)
-	}
+	dbConfig := database.InitDatabaseConfig()
 
 	ctx := context.TODO()
 
-	if err := dbConfig.ConnectMongoDB(ctx); err != nil {
-		logger.Log.Errorf(err.Error())
-		panic(err)
-	}
+	barangInRepo := repository.NewBarangInRepository(dbConfig)
+	barangOutRepo := repository.NewBarangOutRepository(dbConfig)
+	barangRepo := repository.NewBarangRepository(dbConfig)
+	brandRepo := repository.NewBrandRepository(dbConfig)
+	requestRepo := repository.NewRequestRepository(dbConfig)
+	roleRepo := repository.NewRoleRepository(dbConfig)
+	satuanRepo := repository.NewSatuanRepository(dbConfig)
+	supplierRepo := repository.NewSupplierRepository(dbConfig)
+	userRepo := repository.NewUserRepository(dbConfig)
 
-	dbDatabase := dbConfig.MongoClient.Database("maison")
-	smtpConfig := config.GetSMTPConfig()
-	sr := repository.NewSMTP(smtpConfig)
+	adminUsecase := usecase.NewAdminUsecase(barangInRepo, barangOutRepo, barangRepo, brandRepo, requestRepo, roleRepo, satuanRepo, supplierRepo, userRepo)
+	authUsecase := usecase.NewAuthUsecase(userRepo)
+	userUsecase := usecase.NewUserUsecase(requestRepo, barangRepo)
 
-	resetRepo := repository.NewResetPasswordRepository(dbDatabase)
-
-	authRepo := repository.NewAuthRepository(dbDatabase)
-	authUsecase := usecase.NewAuthUsecase(authRepo, sr, resetRepo)
+	adminHandler := handler.NewAdminHandler(adminUsecase)
 	authHandler := handler.NewAuthHandler(authUsecase)
-
-	productRepo := repository.NewProductRepository(dbDatabase)
-	productUsecase := usecase.NewProductUsecase(productRepo)
-	productHandler := handler.NewProductHandler(productUsecase)
-
-	articleRepo := repository.NewArticleRepository(dbDatabase)
-	articleUsecase := usecase.NewArticleUsecase(articleRepo)
-	articleHandler := handler.NewArticleHandler(articleUsecase)
+	userHandler := handler.NewUserHandler(userUsecase)
 
 	opts := server.RouterOpts{
-		AuthHandler:    authHandler,
-		ProductHandler: productHandler,
-		ArticleHandler: articleHandler,
+		AuthHandler:  authHandler,
+		AdminHandler: adminHandler,
+		UserHandler:  userHandler,
 	}
 	r := server.NewRouter(opts)
 	appPort := os.Getenv("BASE_PORT")
@@ -73,9 +71,6 @@ func main() {
 	wait := config.GracefulShutdown(ctx, 2*time.Second, map[string]config.Operation{
 		"http-server": func(ctx context.Context) error {
 			return srv.Shutdown(ctx)
-		},
-		"mongo-db": func(ctx context.Context) error {
-			return dbConfig.MongoClient.Disconnect(ctx)
 		},
 	})
 

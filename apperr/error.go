@@ -90,4 +90,5 @@ var (
 	ErrResetPasswordNotFound = NewCustomError(http.StatusInternalServerError, "token for reset password not found")
 	ErrInvalidSignature      = NewCustomError(http.StatusBadRequest, "invalid signature")
 	ErrBearerTokenInvalid    = NewCustomError(http.StatusBadRequest, "invalid bearer token")
+	ErrUserAlreadyExists     = NewCustomError(http.StatusBadRequest, "User Already Exists")
 )

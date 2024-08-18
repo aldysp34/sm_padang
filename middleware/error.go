@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/aldysp34/sm_padang/apperr"
+	"github.com/aldysp34/sm_padang/dto"
 	"github.com/gin-gonic/gin"
 )
 

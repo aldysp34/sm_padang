@@ -8,8 +8,11 @@ import (
 	"strings"
 
 	"github.com/aldysp34/sm_padang/apperr"
-	"github.com/dgrijalva/jwt-go"
+	"github.com/aldysp34/sm_padang/common"
+	"github.com/aldysp34/sm_padang/dto"
+	"github.com/aldysp34/sm_padang/util"
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 func AuthorizeHandler() gin.HandlerFunc {
@@ -67,8 +70,9 @@ func AuthorizeHandler() gin.HandlerFunc {
 			return
 		}
 
-		newCtx := context.WithValue(ctx.Request.Context(), common.ID, claims.ID)
-		ctx.Request = ctx.Request.WithContext(newCtx)
+		newCtx := context.WithValue(ctx.Request.Context(), "id", claims.ID)
+		roleCtx := context.WithValue(newCtx, "role_id", claims.Role)
+		ctx.Request = ctx.Request.WithContext(roleCtx)
 		ctx.Next()
 	}
 }

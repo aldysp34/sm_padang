@@ -5,6 +5,7 @@ import (
 
 	"github.com/aldysp34/sm_padang/model"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type BrandRepository struct {
@@ -28,16 +29,16 @@ func (sr *BrandRepository) CreateBrand(satuan model.Brand) (model.Brand, error) 
 
 func (sr *BrandRepository) GetBrandByID(id uint) (model.Brand, error) {
 	var satuan model.Brand
-	if err := sr.Db.First(&satuan, id).Error; err != nil {
+	if err := sr.Db.Preload(clause.Associations).First(&satuan, id).Error; err != nil {
 		return model.Brand{}, err
 	}
 	return satuan, nil
 }
 
 // Get all satuans
-func (sr *BrandRepository) GetAllBrands(db *gorm.DB) ([]model.Brand, error) {
+func (sr *BrandRepository) GetAllBrands() ([]model.Brand, error) {
 	var satuans []model.Brand
-	if err := sr.Db.Find(&satuans).Error; err != nil {
+	if err := sr.Db.Preload(clause.Associations).Find(&satuans).Error; err != nil {
 		return nil, err
 	}
 	return satuans, nil
@@ -46,7 +47,15 @@ func (sr *BrandRepository) GetAllBrands(db *gorm.DB) ([]model.Brand, error) {
 // Update a satuan
 func (sr *BrandRepository) UpdateBrand(satuan model.Brand) (model.Brand, error) {
 	satuan.UpdatedAt = time.Now()
-	if err := sr.Db.Save(&satuan).Error; err != nil {
+
+	var data model.Brand
+	if err := sr.Db.Where("id = ?", satuan.ID).First(&data).Error; err != nil {
+		return model.Brand{}, err
+	}
+
+	data.BrandName = satuan.BrandName
+	data.UpdatedAt = satuan.UpdatedAt
+	if err := sr.Db.Save(&data).Error; err != nil {
 		return model.Brand{}, err
 	}
 	return satuan, nil
