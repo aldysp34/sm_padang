@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"log"
 	"net/http"
 
 	"github.com/aldysp34/sm_padang/apperr"
@@ -44,7 +45,7 @@ func (uu *UserUsecase) GetUserRequest(ctx context.Context) ([]dto.RequestRespons
 
 	var res []dto.RequestResponse
 	for _, v := range data {
-		formattedDate := v.CreatedAt.Format("02012006")
+		formattedDate := v.CreatedAt.Format("02-01-2006")
 		var status string
 		switch v.Status {
 		case 1:
@@ -59,11 +60,12 @@ func (uu *UserUsecase) GetUserRequest(ctx context.Context) ([]dto.RequestRespons
 			BarangName:  v.Barang.BarangName,
 			UserName:    v.User.Username,
 			RequestDate: formattedDate,
+			Brand:       v.Barang.Brand.BrandName,
 			Status:      status,
 			Amount:      v.TotalRequested,
 			Satuan:      v.Barang.Satuan.Satuan,
 		}
-
+		log.Println(resp)
 		res = append(res, resp)
 	}
 

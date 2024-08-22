@@ -38,7 +38,7 @@ func (sr *BarangInRepository) GetBarangInByID(id uint) (model.BarangIn, error) {
 // Get all satuans
 func (sr *BarangInRepository) GetAllBarangIns() ([]model.BarangIn, error) {
 	var satuans []model.BarangIn
-	if err := sr.Db.Preload("Barang.Supplier").Preload("Barang.Satuan").Preload("Barang.Brand").Preload(clause.Associations).Find(&satuans).Error; err != nil {
+	if err := sr.Db.Preload("Barang.Supplier").Preload("Barang.Satuan").Preload("Barang.Brand").Preload(clause.Associations).Order("created_at DESC").Find(&satuans).Error; err != nil {
 		return nil, err
 	}
 	return satuans, nil
@@ -48,7 +48,7 @@ func (sr *BarangInRepository) GetAllBarangInsWithDate(startDate, endDate time.Ti
 	var satuans []model.BarangIn
 	start := startDate.AddDate(0, 0, -1)
 	end := endDate.AddDate(0, 0, 1)
-	if err := sr.Db.Preload("Barang.Supplier").Preload("Barang.Satuan").Preload("Barang.Brand").Preload(clause.Associations).Where("created_at BETWEEN ? AND ?", start, end).Find(&satuans).Error; err != nil {
+	if err := sr.Db.Preload("Barang.Supplier").Preload("Barang.Satuan").Preload("Barang.Brand").Preload(clause.Associations).Where("created_at BETWEEN ? AND ?", start, end).Order("created_at DESC").Find(&satuans).Error; err != nil {
 		return nil, err
 	}
 	return satuans, nil

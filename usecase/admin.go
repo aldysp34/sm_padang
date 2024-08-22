@@ -82,12 +82,15 @@ func (au *AdminUsecase) GetAllBarangIn(ctx context.Context) ([]dto.BarangInOutRe
 
 	var res []dto.BarangInOutResponse
 	for _, v := range data {
+		formattedDate := v.CreatedAt.Format("02-01-2006")
 		newRes := dto.BarangInOutResponse{
 			Id:           v.ID,
 			SupplierName: v.Barang.Supplier.SupplierName,
 			Amount:       uint(v.TotalBarang),
+			Brand:        v.Barang.Brand.BrandName,
 			BarangName:   v.Barang.BarangName,
 			Satuan:       v.Barang.Satuan.Satuan,
+			Date:         formattedDate,
 		}
 
 		res = append(res, newRes)
@@ -112,6 +115,7 @@ func (au *AdminUsecase) GetAllBarangOut(ctx context.Context) ([]dto.BarangInOutR
 
 	var res []dto.BarangInOutResponse
 	for _, v := range data {
+		formattedDate := v.CreatedAt.Format("02-01-2006")
 		newRes := dto.BarangInOutResponse{
 			Id:           v.ID,
 			UserName:     v.Request.User.Nama,
@@ -119,6 +123,8 @@ func (au *AdminUsecase) GetAllBarangOut(ctx context.Context) ([]dto.BarangInOutR
 			Amount:       uint(v.TotalBarang),
 			BarangName:   v.Barang.BarangName,
 			Satuan:       v.Barang.Satuan.Satuan,
+			Brand:        v.Barang.Brand.BrandName,
+			Date:         formattedDate,
 		}
 
 		res = append(res, newRes)
@@ -451,9 +457,20 @@ func (au *AdminUsecase) ApproveRejectRequest(ctx context.Context, req dto.ReqApp
 			tx.Rollback()
 			return err
 		}
-		if request.Barang.Total < 0 || request.Barang.Total <= request.TotalRequested {
-			tx.Rollback()
-			return apperr.NewCustomError(http.StatusBadRequest, "jumlah request kurang dari persediaan")
+
+		// Check if the total available barang is less than the requested amount.
+		if request.Barang.Total < 1 || request.Barang.Total < request.TotalRequested {
+			// Update the request status to 2 (rejected) before rolling back.
+			_, err := au.request.UpdateStatus(tx, req.Id, 2)
+			if err != nil {
+				tx.Rollback()
+				return apperr.NewCustomError(http.StatusBadRequest, "error when updating status to rejected")
+			}
+			if err := tx.Commit().Error; err != nil {
+				tx.Rollback()
+				return err
+			}
+			return apperr.NewCustomError(http.StatusBadRequest, "jumlah request kurang dari persediaan, request ditolak")
 		}
 
 		barangOut := model.BarangOut{
@@ -464,13 +481,13 @@ func (au *AdminUsecase) ApproveRejectRequest(ctx context.Context, req dto.ReqApp
 		tx, err = au.barangOut.CreateBarangOut(tx, barangOut)
 		if err != nil {
 			tx.Rollback()
-			return apperr.NewCustomError(http.StatusBadRequest, "error when create barang out")
+			return apperr.NewCustomError(http.StatusBadRequest, "error when creating barang out")
 		}
 
 		tx, err = au.barang.UpdateBarangAmount(tx, request.BarangID, request.TotalRequested)
 		if err != nil {
 			tx.Rollback()
-			return apperr.NewCustomError(http.StatusBadRequest, "error when create barang out")
+			return apperr.NewCustomError(http.StatusBadRequest, "error when updating barang amount")
 		}
 
 	case 2:
@@ -479,11 +496,9 @@ func (au *AdminUsecase) ApproveRejectRequest(ctx context.Context, req dto.ReqApp
 			tx.Rollback()
 			return err
 		}
-		// if request.Barang.Total < 0 || request.Barang.Total <= request.TotalRequested {
-		// 	tx.Rollback()
-		// 	return apperr.NewCustomError(http.StatusBadRequest, "jumlah request kurang dari persediaan")
-		// }
+		// Additional logic for case 2 can go here.
 	}
+
 	result, err := au.request.UpdateStatus(tx, req.Id, req.Status)
 	if err != nil {
 		tx.Rollback()
@@ -497,6 +512,7 @@ func (au *AdminUsecase) ApproveRejectRequest(ctx context.Context, req dto.ReqApp
 	}
 
 	return nil
+
 }
 
 func (au *AdminUsecase) GetAllRequest(ctx context.Context) ([]dto.RequestResponse, error) {
@@ -507,7 +523,7 @@ func (au *AdminUsecase) GetAllRequest(ctx context.Context) ([]dto.RequestRespons
 
 	var response []dto.RequestResponse
 	for _, v := range data {
-		formattedDate := v.CreatedAt.Format("02012006")
+		formattedDate := v.CreatedAt.Format("02-01-2006")
 		var status string
 		switch v.Status {
 		case 1:
@@ -560,11 +576,12 @@ func (au *AdminUsecase) DownloadXLSX(ctx context.Context, startDate, endDate str
 	}
 	f.SetActiveSheet(index)
 	f.SetCellValue(sheetBarangOut, "A1", "Tanggal Keluar")
-	f.SetCellValue(sheetBarangOut, "B1", "Nama Barang")
-	f.SetCellValue(sheetBarangOut, "C1", "Jumlah")
-	f.SetCellValue(sheetBarangOut, "D1", "Satuan")
-	f.SetCellValue(sheetBarangOut, "E1", "Brand")
-	f.SetCellValue(sheetBarangOut, "F1", "Supplier Name")
+	f.SetCellValue(sheetBarangOut, "B1", "Nama User")
+	f.SetCellValue(sheetBarangOut, "C1", "Nama Barang")
+	f.SetCellValue(sheetBarangOut, "D1", "Jumlah")
+	f.SetCellValue(sheetBarangOut, "E1", "Satuan")
+	f.SetCellValue(sheetBarangOut, "F1", "Brand")
+	f.SetCellValue(sheetBarangOut, "G1", "Supplier Name")
 
 	for i, barang := range barangOuts {
 		row := i + 2
@@ -573,11 +590,12 @@ func (au *AdminUsecase) DownloadXLSX(ctx context.Context, startDate, endDate str
 			return nil, err
 		}
 		f.SetCellValue(sheetBarangOut, fmt.Sprintf("A%d", row), date)
-		f.SetCellValue(sheetBarangOut, fmt.Sprintf("B%d", row), barang.Barang.BarangName)
-		f.SetCellValue(sheetBarangOut, fmt.Sprintf("C%d", row), barang.TotalBarang)
-		f.SetCellValue(sheetBarangOut, fmt.Sprintf("D%d", row), barang.Barang.Satuan.Satuan)
-		f.SetCellValue(sheetBarangOut, fmt.Sprintf("E%d", row), barang.Barang.Brand.BrandName)
-		f.SetCellValue(sheetBarangOut, fmt.Sprintf("F%d", row), barang.Barang.Supplier.SupplierName)
+		f.SetCellValue(sheetBarangOut, fmt.Sprintf("B%d", row), barang.Request.User.Nama)
+		f.SetCellValue(sheetBarangOut, fmt.Sprintf("C%d", row), barang.Barang.BarangName)
+		f.SetCellValue(sheetBarangOut, fmt.Sprintf("D%d", row), barang.TotalBarang)
+		f.SetCellValue(sheetBarangOut, fmt.Sprintf("E%d", row), barang.Barang.Satuan.Satuan)
+		f.SetCellValue(sheetBarangOut, fmt.Sprintf("F%d", row), barang.Barang.Brand.BrandName)
+		f.SetCellValue(sheetBarangOut, fmt.Sprintf("G%d", row), barang.Barang.Supplier.SupplierName)
 	}
 
 	// Create BarangIn sheet

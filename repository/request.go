@@ -39,7 +39,7 @@ func (sr *RequestRepository) GetRequetsyID(id uint) (model.Request, error) {
 // Get all satuans
 func (sr *RequestRepository) GetAllRequest() ([]model.Request, error) {
 	var satuans []model.Request
-	if err := sr.Db.Preload("Barang.Supplier").Preload("Barang.Satuan").Preload("Barang.Brand").Preload(clause.Associations).Where("status NOT IN (1,2)").Find(&satuans).Error; err != nil {
+	if err := sr.Db.Preload("Barang.Supplier").Preload("Barang.Satuan").Preload("Barang.Brand").Preload(clause.Associations).Where("status NOT IN (1,2)").Order("created_at DESC").Find(&satuans).Error; err != nil {
 		return nil, err
 	}
 	return satuans, nil
@@ -89,7 +89,7 @@ func (sr *RequestRepository) UpdateStatus(tx *gorm.DB, id, status uint) (model.R
 
 func (sr *RequestRepository) GetRequestByUserID(id uint) ([]model.Request, error) {
 	var requests []model.Request
-	if err := sr.Db.Preload("Barang.Supplier").Preload("Barang.Satuan").Preload("Barang.Brand").Preload(clause.Associations).Where("user_id = ?", id).Find(&requests).Error; err != nil {
+	if err := sr.Db.Preload("Barang.Supplier").Preload("Barang.Satuan").Preload("Barang.Brand").Preload(clause.Associations).Where("user_id = ?", id).Order("created_at DESC").Find(&requests).Error; err != nil {
 		return nil, err
 	}
 

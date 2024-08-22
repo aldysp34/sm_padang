@@ -65,6 +65,7 @@ type RequestResponse struct {
 	BarangName  string `json:"nama_barang"`
 	Amount      int    `json:"jumlah"`
 	Satuan      string `json:"satuan"`
+	Brand       string `json:"nama_brand"`
 }
 
 type BarangInOutResponse struct {
@@ -74,6 +75,8 @@ type BarangInOutResponse struct {
 	SupplierName string `json:"nama_supplier,omitempty"`
 	Amount       uint   `json:"jumlah_keluar"`
 	Satuan       string `json:"satuan,omitempty"`
+	Date         string `json:"date"`
+	Brand        string `json:"nama_brand"`
 }
 
 type ReqApproval struct {

@@ -78,11 +78,10 @@ func (sr *BarangRepository) UpdateBarangAmount(tx *gorm.DB, id uint, jumlah int)
 		return tx, err
 	}
 
-	total := data.Total + jumlah
+	total := data.Total - jumlah
 
-	if err := tx.Model(&data).Updates(model.Barang{Total: total, UpdatedAt: time.Now()}).Error; err != nil {
+	if err := tx.Model(&data).Select("Total", "UpdatedAt").Updates(model.Barang{Total: total, UpdatedAt: time.Now()}).Error; err != nil {
 		return tx, err
 	}
 	return tx, nil
-
 }

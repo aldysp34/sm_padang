@@ -29,7 +29,7 @@ func (sr *BarangOutRepository) CreateBarangOut(tx *gorm.DB, satuan model.BarangO
 
 func (sr *BarangOutRepository) GetBarangOutByID(id uint) (model.BarangOut, error) {
 	var satuan model.BarangOut
-	if err := sr.Db.Preload("Barang.Supplier").Preload("Barang.Satuan").Preload("Barang.Brand").Preload(clause.Associations).First(&satuan, id).Error; err != nil {
+	if err := sr.Db.Preload("Barang.Supplier").Preload("Barang.Satuan").Preload("Barang.Brand").Preload("Request.User").Preload(clause.Associations).First(&satuan, id).Error; err != nil {
 		return model.BarangOut{}, err
 	}
 	return satuan, nil
@@ -38,7 +38,7 @@ func (sr *BarangOutRepository) GetBarangOutByID(id uint) (model.BarangOut, error
 // Get all satuans
 func (sr *BarangOutRepository) GetAllBarangOuts() ([]model.BarangOut, error) {
 	var satuans []model.BarangOut
-	if err := sr.Db.Preload("Barang.Supplier").Preload("Barang.Satuan").Preload("Barang.Brand").Preload(clause.Associations).Find(&satuans).Error; err != nil {
+	if err := sr.Db.Preload("Barang.Supplier").Preload("Barang.Satuan").Preload("Barang.Brand").Preload("Request.User").Preload(clause.Associations).Order("created_at DESC").Find(&satuans).Error; err != nil {
 		return nil, err
 	}
 	return satuans, nil
@@ -48,7 +48,7 @@ func (sr *BarangOutRepository) GetAllBarangOutsWithDate(startDate, endDate time.
 	var satuans []model.BarangOut
 	start := startDate.AddDate(0, 0, -1)
 	end := endDate.AddDate(0, 0, 1)
-	if err := sr.Db.Preload("Barang.Supplier").Preload("Barang.Satuan").Preload("Barang.Brand").Preload(clause.Associations).Where("created_at BETWEEN ? AND ?", start, end).Find(&satuans).Error; err != nil {
+	if err := sr.Db.Preload("Barang.Supplier").Preload("Barang.Satuan").Preload("Barang.Brand").Preload("Request.User").Preload(clause.Associations).Where("created_at BETWEEN ? AND ?", start, end).Order("created_at DESC").Find(&satuans).Error; err != nil {
 		return nil, err
 	}
 	return satuans, nil
