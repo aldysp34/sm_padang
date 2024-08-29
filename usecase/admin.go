@@ -568,6 +568,7 @@ func (au *AdminUsecase) DownloadXLSX(ctx context.Context, startDate, endDate str
 
 	f := excelize.NewFile()
 
+	columns := []string{"A", "B", "C", "D", "E", "F", "G"}
 	// Create BarangOut sheet
 	sheetBarangOut := "BarangOut"
 	index, err := f.NewSheet(sheetBarangOut)
@@ -575,16 +576,77 @@ func (au *AdminUsecase) DownloadXLSX(ctx context.Context, startDate, endDate str
 		return nil, err
 	}
 	f.SetActiveSheet(index)
-	f.SetCellValue(sheetBarangOut, "A1", "Tanggal Keluar")
-	f.SetCellValue(sheetBarangOut, "B1", "Nama User")
-	f.SetCellValue(sheetBarangOut, "C1", "Nama Barang")
-	f.SetCellValue(sheetBarangOut, "D1", "Jumlah")
-	f.SetCellValue(sheetBarangOut, "E1", "Satuan")
-	f.SetCellValue(sheetBarangOut, "F1", "Brand")
-	f.SetCellValue(sheetBarangOut, "G1", "Supplier Name")
+	if err := f.MergeCell(sheetBarangOut, "A1", "G1"); err != nil {
+		return nil, err
+	}
+	f.SetCellValue(sheetBarangOut, "A1", "BARANG KELUAR")
+	header := excelize.Style{
+		Font: &excelize.Font{
+			Bold:      true,
+			Underline: "single",
+		},
+		Alignment: &excelize.Alignment{
+			Horizontal: "center",
+			Vertical:   "center",
+		},
+		Fill: excelize.Fill{
+			Type:    "pattern",
+			Color:   []string{"#FFFFFF"},
+			Pattern: 1,
+		},
+	}
+
+	headerStyle, err := f.NewStyle(&header)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := f.SetCellStyle(sheetBarangOut, "A1", "G1", headerStyle); err != nil {
+		return nil, err
+	}
+
+	f.SetCellValue(sheetBarangOut, "A3", "NPSN")
+	f.SetCellValue(sheetBarangOut, "B3", ": 20104455")
+	f.SetCellValue(sheetBarangOut, "A4", "Nama Sekolah")
+	f.SetCellValue(sheetBarangOut, "B4", ": SMKS Era Pembangunan")
+	f.SetCellValue(sheetBarangOut, "A5", "Desa/Kelurahan")
+	f.SetCellValue(sheetBarangOut, "B5", ": Jl. Gaga Alastua No. 122 Rt.03/04 Kel. Semanan")
+	f.SetCellValue(sheetBarangOut, "A6", "Kecamatan")
+	f.SetCellValue(sheetBarangOut, "B6", ": Kalideres")
+	f.SetCellValue(sheetBarangOut, "A7", "Provinsi")
+	f.SetCellValue(sheetBarangOut, "B7", ": DKI Jakarta")
+
+	f.SetCellValue(sheetBarangOut, "A9", "Tanggal Keluar")
+	f.SetCellValue(sheetBarangOut, "B9", "User Request")
+	f.SetCellValue(sheetBarangOut, "C9", "Nama Barang")
+	f.SetCellValue(sheetBarangOut, "D9", "Jumlah")
+	f.SetCellValue(sheetBarangOut, "E9", "Satuan")
+	f.SetCellValue(sheetBarangOut, "F9", "Brand")
+	f.SetCellValue(sheetBarangOut, "G9", "Nama Supplier")
+
+	color := excelize.Style{
+		Fill: excelize.Fill{
+			Type:    "pattern",           // Pattern fill type
+			Color:   []string{"#D9D9D9"}, // Fill color
+			Pattern: 1,                   // Solid pattern
+		},
+	}
+
+	// Create the style in Excelize
+	colorStyle, err := f.NewStyle(&color)
+	if err != nil {
+		log.Fatalf("Failed to create style: %v", err)
+	}
+
+	// Apply the style to the empty range A10 to G10
+	if err := f.SetCellStyle(sheetBarangOut, "A10", "G10", colorStyle); err != nil {
+		log.Fatalf("Failed to set cell style: %v", err)
+	}
+
+	lastRow := 0
 
 	for i, barang := range barangOuts {
-		row := i + 2
+		row := i + 11
 		date, err := normalizedUploadDate(barang.CreatedAt.String())
 		if err != nil {
 			return nil, err
@@ -596,6 +658,41 @@ func (au *AdminUsecase) DownloadXLSX(ctx context.Context, startDate, endDate str
 		f.SetCellValue(sheetBarangOut, fmt.Sprintf("E%d", row), barang.Barang.Satuan.Satuan)
 		f.SetCellValue(sheetBarangOut, fmt.Sprintf("F%d", row), barang.Barang.Brand.BrandName)
 		f.SetCellValue(sheetBarangOut, fmt.Sprintf("G%d", row), barang.Barang.Supplier.SupplierName)
+
+		lastRow = row
+	}
+	tableBorderStyle := excelize.Style{
+		Border: []excelize.Border{
+			{Type: "left", Color: "000000", Style: 1},
+			{Type: "top", Color: "000000", Style: 1},
+			{Type: "bottom", Color: "000000", Style: 1},
+			{Type: "right", Color: "000000", Style: 1},
+		},
+	}
+
+	// Create the style for table borders
+	tableBorderStyleID, err := f.NewStyle(&tableBorderStyle)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Apply the table border style from A9 to G{lastRow}
+	if err := f.SetCellStyle(sheetBarangOut, "A9", fmt.Sprintf("G%d", lastRow), tableBorderStyleID); err != nil {
+		log.Fatal(err)
+	}
+
+	f.SetCellValue(sheetBarangOut, fmt.Sprintf("G%d", lastRow+2), fmt.Sprintf("Jakarta, %s", createNowDate()))
+	f.SetCellValue(sheetBarangOut, fmt.Sprintf("B%d", lastRow+3), "Mengetahui,")
+	f.SetCellValue(sheetBarangOut, fmt.Sprintf("B%d", lastRow+4), "Kepala Sekolah")
+	f.SetCellValue(sheetBarangOut, fmt.Sprintf("G%d", lastRow+3), "Petugas")
+	f.SetCellValue(sheetBarangOut, fmt.Sprintf("B%d", lastRow+7), "(Nurul Hidayati, S.Pd.)")
+	f.SetCellValue(sheetBarangOut, fmt.Sprintf("G%d", lastRow+6), "(Salman Farizi, S.Pd.)")
+
+	for _, col := range columns {
+		maxWidth := getMaxContentWidth(f, sheetBarangOut, col, lastRow)
+		if err := f.SetColWidth(sheetBarangOut, col, col, maxWidth+2); err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	// Create BarangIn sheet
@@ -606,15 +703,46 @@ func (au *AdminUsecase) DownloadXLSX(ctx context.Context, startDate, endDate str
 		return nil, err
 	}
 	f.SetActiveSheet(in)
-	f.SetCellValue(sheetBarangIn, "A1", "Tanggal Masuk")
-	f.SetCellValue(sheetBarangIn, "B1", "Nama Barang")
-	f.SetCellValue(sheetBarangIn, "C1", "Jumlah")
-	f.SetCellValue(sheetBarangIn, "D1", "Satuan")
-	f.SetCellValue(sheetBarangIn, "E1", "Brand")
-	f.SetCellValue(sheetBarangIn, "F1", "Supplier Name")
+	if err := f.MergeCell(sheetBarangIn, "A1", "G1"); err != nil {
+		return nil, err
+	}
+	f.SetCellValue(sheetBarangIn, "A1", "BARANG MASUK")
 
+	headerStyleIn, err := f.NewStyle(&header)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := f.SetCellStyle(sheetBarangIn, "A1", "G1", headerStyleIn); err != nil {
+		return nil, err
+	}
+
+	f.SetCellValue(sheetBarangIn, "A3", "NPSN")
+	f.SetCellValue(sheetBarangIn, "B3", ": 20104455")
+	f.SetCellValue(sheetBarangIn, "A4", "Nama Sekolah")
+	f.SetCellValue(sheetBarangIn, "B4", ": SMKS Era Pembangunan")
+	f.SetCellValue(sheetBarangIn, "A5", "Desa/Kelurahan")
+	f.SetCellValue(sheetBarangIn, "B5", ": Jl. Gaga Alastua No. 122 Rt.03/04 Kel. Semanan")
+	f.SetCellValue(sheetBarangIn, "A6", "Kecamatan")
+	f.SetCellValue(sheetBarangIn, "B6", ": Kalideres")
+	f.SetCellValue(sheetBarangIn, "A7", "Provinsi")
+	f.SetCellValue(sheetBarangIn, "B7", ": DKI Jakarta")
+
+	f.SetCellValue(sheetBarangIn, "A9", "Tanggal Masuk")
+	f.SetCellValue(sheetBarangIn, "B9", "Nama Barang")
+	f.SetCellValue(sheetBarangIn, "C9", "Jumlah")
+	f.SetCellValue(sheetBarangIn, "D9", "Satuan")
+	f.SetCellValue(sheetBarangIn, "E9", "Brand")
+	f.SetCellValue(sheetBarangIn, "F9", "Stok sisa")
+	f.SetCellValue(sheetBarangIn, "G9", "Supplier Name")
+
+	if err := f.SetCellStyle(sheetBarangIn, "A10", "G10", colorStyle); err != nil {
+		return nil, err
+	}
+
+	lastRow = 0
 	for i, barangIn := range barangIns {
-		row := i + 2
+		row := i + 11
 		date, err := normalizedUploadDate(barangIn.CreatedAt.String())
 		if err != nil {
 			return nil, err
@@ -624,7 +752,28 @@ func (au *AdminUsecase) DownloadXLSX(ctx context.Context, startDate, endDate str
 		f.SetCellValue(sheetBarangIn, fmt.Sprintf("C%d", row), barangIn.TotalBarang)
 		f.SetCellValue(sheetBarangIn, fmt.Sprintf("D%d", row), barangIn.Barang.Satuan.Satuan)
 		f.SetCellValue(sheetBarangIn, fmt.Sprintf("E%d", row), barangIn.Barang.Brand.BrandName)
-		f.SetCellValue(sheetBarangIn, fmt.Sprintf("F%d", row), barangIn.Barang.Supplier.SupplierName)
+		f.SetCellValue(sheetBarangIn, fmt.Sprintf("F%d", row), barangIn.Barang.Total)
+		f.SetCellValue(sheetBarangIn, fmt.Sprintf("G%d", row), barangIn.Barang.Supplier.SupplierName)
+		lastRow = row
+	}
+
+	// Apply the table border style from A9 to G{lastRow}
+	if err := f.SetCellStyle(sheetBarangIn, "A9", fmt.Sprintf("G%d", lastRow), tableBorderStyleID); err != nil {
+		log.Fatal(err)
+	}
+
+	f.SetCellValue(sheetBarangIn, fmt.Sprintf("G%d", lastRow+2), fmt.Sprintf("Jakarta, %s", createNowDate()))
+	f.SetCellValue(sheetBarangIn, fmt.Sprintf("B%d", lastRow+3), "Mengetahui,")
+	f.SetCellValue(sheetBarangIn, fmt.Sprintf("B%d", lastRow+4), "Kepala Sekolah")
+	f.SetCellValue(sheetBarangIn, fmt.Sprintf("G%d", lastRow+3), "Petugas")
+	f.SetCellValue(sheetBarangIn, fmt.Sprintf("B%d", lastRow+7), "(Nurul Hidayati, S.Pd.)")
+	f.SetCellValue(sheetBarangIn, fmt.Sprintf("G%d", lastRow+6), "(Salman Farizi, S.Pd.)")
+
+	for _, col := range columns {
+		maxWidth := getMaxContentWidth(f, sheetBarangIn, col, lastRow)
+		if err := f.SetColWidth(sheetBarangIn, col, col, maxWidth+2); err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	return f, nil
@@ -651,4 +800,22 @@ func createDate(startDate, endDate string) (*time.Time, *time.Time, error) {
 	}
 
 	return &start, &end, nil
+}
+
+func createNowDate() string {
+	now := time.Now()
+	formatTime := now.Format("02-01-2006")
+	return formatTime
+}
+
+func getMaxContentWidth(f *excelize.File, sheet, col string, lastRow int) float64 {
+	maxWidth := 0.0
+	for row := 9; row <= lastRow; row++ {
+		cell := fmt.Sprintf("%s%d", col, row)
+		value, _ := f.GetCellValue(sheet, cell)
+		if len(value) > int(maxWidth) {
+			maxWidth = float64(len(value))
+		}
+	}
+	return maxWidth * 1.2
 }
